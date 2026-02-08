@@ -13,19 +13,7 @@ This command starts ClawCat services. It uses platform-specific launcher scripts
 
 **Note**: Services will run in the background. The ClawCat window will appear and stay open.
 
-## Method 1: Using Service Manager (Recommended)
-
-```bash
-python "${CLAUDE_PLUGIN_ROOT}/scripts/service_manager.py" start
-```
-
-This will:
-
-1. Check and install Python dependencies (using conda if available)
-2. Check port availability
-3. Launch the window using platform-specific scripts
-
-## Method 2: Direct Script Launch
+## Method : Direct Script Launch
 
 You can also launch directly using the platform-specific scripts:
 
