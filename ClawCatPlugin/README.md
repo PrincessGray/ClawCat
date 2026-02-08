@@ -22,7 +22,7 @@ A Live2D desktop pet that integrates with Claude Code to provide visual feedback
 
 1. Add the ClawCat marketplace:
    ```bash
-   /plugin marketplace add YOUR_USERNAME/ClawCat
+   /plugin marketplace add PrincessGray/ClawCat
    ```
 
 2. Install the plugin:

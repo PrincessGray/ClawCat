@@ -22,7 +22,7 @@
 
 1. 添加 ClawCat 市场：
    ```bash
-   /plugin marketplace add YOUR_USERNAME/ClawCat
+   /plugin marketplace add PrincessGray/ClawCat
    ```
 
 2. 安装插件：
