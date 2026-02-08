@@ -5,8 +5,8 @@ ClawCat Window Launcher - PyQt5 版本
 """
 import sys
 import os
-from PyQt5.QtCore import Qt, QUrl
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import Qt, QUrl, QPoint
+from PyQt5.QtWidgets import QApplication, QMenu, QAction
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings
 from PyQt5.QtGui import QScreen, QColor
 
@@ -37,10 +37,11 @@ class TransparentWebView(QWebEngineView):
         super().__init__()
         
         # 设置窗口属性
+        # 移除 Qt.Tool 以显示在任务栏，保留无边框和置顶
         self.setWindowFlags(
             Qt.FramelessWindowHint |  # 无边框
-            Qt.WindowStaysOnTopHint |  # 置顶
-            Qt.Tool  # 不显示在任务栏（可选）
+            Qt.WindowStaysOnTopHint   # 置顶
+            # 移除 Qt.Tool 以显示在任务栏
         )
         
         # 设置透明背景（关键！）
@@ -78,6 +79,71 @@ class TransparentWebView(QWebEngineView):
     def mouseReleaseEvent(self, event):
         """鼠标释放事件"""
         self.drag_position = None
+    
+    def contextMenuEvent(self, event):
+        """右键菜单事件"""
+        menu = QMenu(self)
+        
+        # 大小调整选项
+        size_menu = menu.addMenu("大小")
+        size_50 = QAction("50%", self)
+        size_75 = QAction("75%", self)
+        size_100 = QAction("100%", self)
+        size_125 = QAction("125%", self)
+        size_150 = QAction("150%", self)
+        size_200 = QAction("200%", self)
+        
+        size_50.triggered.connect(lambda: self.resize_window(0.5))
+        size_75.triggered.connect(lambda: self.resize_window(0.75))
+        size_100.triggered.connect(lambda: self.resize_window(1.0))
+        size_125.triggered.connect(lambda: self.resize_window(1.25))
+        size_150.triggered.connect(lambda: self.resize_window(1.5))
+        size_200.triggered.connect(lambda: self.resize_window(2.0))
+        
+        size_menu.addAction(size_50)
+        size_menu.addAction(size_75)
+        size_menu.addAction(size_100)
+        size_menu.addAction(size_125)
+        size_menu.addAction(size_150)
+        size_menu.addAction(size_200)
+        
+        menu.addSeparator()
+        
+        # 最小化
+        minimize_action = QAction("最小化", self)
+        minimize_action.triggered.connect(self.showMinimized)
+        menu.addAction(minimize_action)
+        
+        # 置顶切换
+        topmost_action = QAction("取消置顶" if self.windowFlags() & Qt.WindowStaysOnTopHint else "置顶", self)
+        topmost_action.triggered.connect(self.toggle_topmost)
+        menu.addAction(topmost_action)
+        
+        menu.addSeparator()
+        
+        # 退出
+        exit_action = QAction("退出", self)
+        exit_action.triggered.connect(self.close)
+        menu.addAction(exit_action)
+        
+        menu.exec_(event.globalPos())
+    
+    def resize_window(self, scale):
+        """调整窗口大小"""
+        new_width = int(DEFAULT_MODEL_WIDTH * scale)
+        new_height = int(DEFAULT_MODEL_HEIGHT * scale)
+        self.resize(new_width, new_height)
+        print(f"[Window] Resized to {new_width}x{new_height} (scale: {scale})", file=sys.stderr, flush=True)
+    
+    def toggle_topmost(self):
+        """切换置顶状态"""
+        if self.windowFlags() & Qt.WindowStaysOnTopHint:
+            self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
+            print("[Window] Topmost disabled", file=sys.stderr, flush=True)
+        else:
+            self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
+            print("[Window] Topmost enabled", file=sys.stderr, flush=True)
+        self.show()  # 重新显示窗口以应用标志
 
 
 def position_window_bottom_right(window):
