@@ -1,5 +1,7 @@
 <template>
   <div class="clawcat-app">
+    <!-- 拖拽层 - 覆盖整个窗口用于拖拽 -->
+    <div class="drag-layer" @mousedown="handleDragStart"></div>
     <!-- 背景图片 -->
     <img
       v-if="backgroundImagePath"
@@ -181,7 +183,54 @@ const {
 } = useModeState()
 
 // 后端通信
-const { currentStatus, fetchStatus, toggleMonitor, sendHookResponse, activateTerminal, setWindowTopmost } = useBackend()
+const { currentStatus, fetchStatus, toggleMonitor, sendHookResponse, activateTerminal, setWindowTopmost, moveWindow } = useBackend()
+
+// 窗口拖拽相关
+const isDragging = ref(false)
+const dragStartX = ref(0)
+const dragStartY = ref(0)
+const windowStartX = ref(0)
+const windowStartY = ref(0)
+
+// 开始拖拽
+function handleDragStart(event: MouseEvent) {
+  // 只响应左键
+  if (event.button !== 0) return
+
+  isDragging.value = true
+  dragStartX.value = event.screenX
+  dragStartY.value = event.screenY
+  // 获取当前窗口位置
+  windowStartX.value = window.screenX
+  windowStartY.value = window.screenY
+
+  // 添加全局事件监听
+  document.addEventListener('mousemove', handleDragMove)
+  document.addEventListener('mouseup', handleDragEnd)
+
+  event.preventDefault()
+}
+
+// 拖拽移动
+function handleDragMove(event: MouseEvent) {
+  if (!isDragging.value) return
+
+  const deltaX = event.screenX - dragStartX.value
+  const deltaY = event.screenY - dragStartY.value
+
+  const newX = windowStartX.value + deltaX
+  const newY = windowStartY.value + deltaY
+
+  // 发送移动请求到后端
+  moveWindow(newX, newY)
+}
+
+// 结束拖拽
+function handleDragEnd() {
+  isDragging.value = false
+  document.removeEventListener('mousemove', handleDragMove)
+  document.removeEventListener('mouseup', handleDragEnd)
+}
 
 // Confirming 状态相关
 const confirmingMessage = ref('等待确认...')
@@ -590,6 +639,22 @@ onUnmounted(() => {
   padding: 0;
 }
 
+/* 拖拽层 - 覆盖整个窗口 */
+.drag-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  cursor: grab;
+  -webkit-app-region: drag;
+}
+
+.drag-layer:active {
+  cursor: grabbing;
+}
+
 .background-image,
 #live2dCanvas,
 .key-image {
@@ -603,6 +668,7 @@ onUnmounted(() => {
   border: none;
   outline: none;
   display: block;
+  pointer-events: none;
 }
 
 .background-image {
@@ -715,15 +781,15 @@ onUnmounted(() => {
 .working-content {
   position: relative;
   background: #ffffff;
-  border: 3px solid #000000;
-  border-radius: 20px;
-  padding: 16px 24px;
-  min-width: 200px;
-  max-width: 400px;
-  box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.15);
+  border: 4px solid #000000;
+  border-radius: 24px;
+  padding: 20px 32px;
+  min-width: 280px;
+  max-width: 500px;
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.15);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   transition: all 0.2s ease;
 }
 
@@ -758,7 +824,7 @@ onUnmounted(() => {
 }
 
 .working-icon {
-  font-size: 24px;
+  font-size: 32px;
   line-height: 1;
   animation: pulse 1s ease-in-out infinite;
 }
@@ -774,7 +840,7 @@ onUnmounted(() => {
 
 .working-message {
   color: #000000;
-  font-size: 16px;
+  font-size: 20px;
   font-weight: bold;
   line-height: 1.4;
   text-shadow: 0 0 1px rgba(0, 0, 0, 0.1);
