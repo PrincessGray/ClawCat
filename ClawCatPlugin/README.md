@@ -266,6 +266,16 @@ ClawCatPlugin/
 
 MIT License - see [LICENSE](../LICENSE) file for details.
 
+## Acknowledgments
+
+This project is inspired by and references the [Bongo Cat](https://github.com/Externalizable/bongo.cat) project. We are grateful to the Bongo Cat community for their creative work and open-source contributions.
+
+Special thanks to:
+- **Bongo Cat** - Original desktop pet concept and animation ideas
+- **Live2D** - Character animation technology
+- **Claude Code** - Hook system and plugin architecture
+- **Vue.js, Vite, PyQt5** - Frontend and desktop application frameworks
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit issues or pull requests.
