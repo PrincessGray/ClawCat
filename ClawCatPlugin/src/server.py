@@ -98,6 +98,8 @@ class ServerState:
         # Terminal commands for each mode (can be configured)
         self.spy_mode_command = None  # Command to execute when entering slacking mode
         self.monitor_mode_command = None  # Command to execute when entering spying mode
+        # Window move callback (set by launch_window.py)
+        self.window_move_callback = None
 
 server_state = ServerState()
 
@@ -122,6 +124,8 @@ class ClawCatHandler(BaseHTTPRequestHandler):
             self.handle_execute_command()
         elif parsed_path.path == "/set-mode-command":
             self.handle_set_mode_command()
+        elif parsed_path.path == "/move-window":
+            self.handle_move_window()
         else:
             self.send_error(404, "Not Found")
 
@@ -495,6 +499,28 @@ class ClawCatHandler(BaseHTTPRequestHandler):
             self.send_json_response(200, response)
         except Exception as e:
             print(f"Error setting mode command: {e}", file=sys.stderr)
+            self.send_error(500, str(e))
+
+    def handle_move_window(self):
+        """Handle move window request from frontend drag"""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length)
+            payload = json.loads(body.decode('utf-8'))
+
+            x = payload.get("x", 0)
+            y = payload.get("y", 0)
+
+            # 通知窗口移动（通过回调）
+            if server_state.window_move_callback:
+                server_state.window_move_callback(x, y)
+                response = {"success": True}
+            else:
+                response = {"success": False, "error": "No window callback"}
+
+            self.send_json_response(200, response)
+        except Exception as e:
+            print(f"Error moving window: {e}", file=sys.stderr)
             self.send_error(500, str(e))
     
     def execute_terminal_command(self, mode, custom_command=None):

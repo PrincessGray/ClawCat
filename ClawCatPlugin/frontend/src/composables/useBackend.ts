@@ -203,13 +203,21 @@ export function useBackend() {
     return !!success
   }
 
+  /**
+   * Move window to specified position (for drag support)
+   */
+  async function moveWindow(x: number, y: number): Promise<boolean> {
+    const data = await apiRequest('/move-window', 'POST', { x, y })
+    return data?.success === true
+  }
+
   // --------------------------------------------------------------------------
   // Public API
   // --------------------------------------------------------------------------
   return {
     // State
     currentStatus,
-    
+
     // Actions
     fetchStatus,
     toggleMode,
@@ -217,6 +225,7 @@ export function useBackend() {
     activateTerminal,
     setWindowTopmost,
     sendHookResponse,
-    executeCommand
+    executeCommand,
+    moveWindow
   }
 }

@@ -2,7 +2,6 @@
 requests>=2.31.0
 psutil>=5.9.0
 
-# Optional GUI dependencies (for Qt-based launcher)
-pywebview>=4.4.1
+# GUI dependencies (for Qt-based launcher)
 PyQt5>=5.15.10
 PyQtWebEngine>=5.15.6
