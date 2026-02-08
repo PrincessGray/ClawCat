@@ -8,9 +8,9 @@ import os
 from pathlib import Path
 from datetime import datetime
 from PyQt5.QtCore import Qt, QUrl, QPoint
-from PyQt5.QtWidgets import QApplication, QMenu, QAction
+from PyQt5.QtWidgets import QApplication, QMenu, QAction, QSystemTrayIcon
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings
-from PyQt5.QtGui import QScreen, QColor
+from PyQt5.QtGui import QScreen, QColor, QIcon
 
 # 日志文件配置
 LOG_DIR = Path.home() / ".claude" / "clawcat" / "logs"
@@ -62,6 +62,18 @@ except ImportError:
 # 统一使用服务器 URL（server 会提供前端文件）
 FRONTEND_URL = 'http://localhost:22622/'
 
+# 获取资源文件路径（支持打包和开发模式）
+def get_resource_path(relative_path):
+    """获取资源文件路径（支持打包和开发模式）"""
+    if getattr(sys, 'frozen', False):
+        # 打包模式：从临时目录或 exe 所在目录
+        base_path = Path(sys.executable).parent
+    else:
+        # 开发模式：从项目根目录
+        base_path = Path(__file__).parent.parent
+    
+    return base_path / relative_path
+
 # 根据 cover.png 的实际比例设置窗口尺寸
 # cover.png: 612x354, 比例 1.73:1
 DEFAULT_MODEL_WIDTH = 612    # 默认模型宽度（像素，来自 cover.png）
@@ -80,11 +92,11 @@ class TransparentWebView(QWebEngineView):
         super().__init__()
         
         # 设置窗口属性
-        # 移除 Qt.Tool 以显示在任务栏，保留无边框和置顶
+        # 使用 Qt.Tool 和 Qt.FramelessWindowHint 以隐藏任务栏显示
         self.setWindowFlags(
             Qt.FramelessWindowHint |  # 无边框
-            Qt.WindowStaysOnTopHint   # 置顶
-            # 移除 Qt.Tool 以显示在任务栏
+            Qt.WindowStaysOnTopHint |  # 置顶
+            Qt.Tool  # 不显示在任务栏，只显示在系统托盘
         )
         
         # 设置透明背景（关键！）
@@ -248,16 +260,79 @@ def main():
     
     # 创建 Qt 应用
     app = QApplication(sys.argv)
+    app.setQuitOnLastWindowClosed(False)  # 关闭窗口时不退出应用
     
-    # 创建透明窗口
+    # 创建透明窗口（无论是否有系统托盘都需要）
     print("Creating transparent window...", file=sys.stderr, flush=True)
     window = TransparentWebView()
-    
-    # 定位到右下角
     position_window_bottom_right(window)
-    
-    # 显示窗口
     window.show()
+    
+    # 创建系统托盘图标
+    tray = None
+    if QSystemTrayIcon.isSystemTrayAvailable():
+        # 查找图标文件
+        icon_paths = [
+            get_resource_path("icon.ico"),
+            get_resource_path("public/logo.png"),
+            get_resource_path("logo.png"),
+        ]
+        
+        tray_icon = None
+        for icon_path in icon_paths:
+            if icon_path.exists():
+                tray_icon = QIcon(str(icon_path))
+                print(f"✅ Using tray icon: {icon_path}", file=sys.stderr, flush=True)
+                break
+        
+        if tray_icon is None:
+            # 使用默认图标
+            tray_icon = QIcon()
+            print("⚠ No icon found, using default", file=sys.stderr, flush=True)
+        
+        # 创建系统托盘
+        tray = QSystemTrayIcon(app)
+        tray.setIcon(tray_icon)
+        tray.setToolTip("ClawCat")
+        
+        # 创建托盘菜单
+        tray_menu = QMenu()
+        
+        # 显示/隐藏窗口
+        show_action = QAction("显示窗口", tray_menu)
+        show_action.triggered.connect(lambda: (window.show(), window.raise_(), window.activateWindow()))
+        tray_menu.addAction(show_action)
+        
+        hide_action = QAction("隐藏窗口", tray_menu)
+        hide_action.triggered.connect(window.hide)
+        tray_menu.addAction(hide_action)
+        
+        tray_menu.addSeparator()
+        
+        # 退出
+        quit_action = QAction("退出", tray_menu)
+        quit_action.triggered.connect(lambda: (server.shutdown(), app.quit()))
+        tray_menu.addAction(quit_action)
+        
+        tray.setContextMenu(tray_menu)
+        
+        # 托盘图标点击事件（显示/隐藏窗口）
+        def toggle_window(reason):
+            if reason == QSystemTrayIcon.Trigger:  # 左键单击
+                if window.isVisible():
+                    window.hide()
+                else:
+                    window.show()
+                    window.raise_()
+                    window.activateWindow()
+        
+        tray.activated.connect(toggle_window)
+        
+        # 显示托盘图标
+        tray.show()
+        print("✅ System tray icon created", file=sys.stderr, flush=True)
+    else:
+        print("⚠ System tray is not available", file=sys.stderr, flush=True)
     
     print("Launching window...", file=sys.stderr, flush=True)
     print(f"  URL: {FRONTEND_URL}", file=sys.stderr, flush=True)
@@ -265,8 +340,9 @@ def main():
     print(f"  Position: Bottom-right corner", file=sys.stderr, flush=True)
     print(f"  Frameless: Yes", file=sys.stderr, flush=True)
     print(f"  Transparent: Yes", file=sys.stderr, flush=True)
-    print(f"\n💡 Drag the window to move it", file=sys.stderr, flush=True)
-    print(f"💡 Press Ctrl+C to exit", file=sys.stderr, flush=True)
+    print(f"  Taskbar: Hidden (System tray only)", file=sys.stderr, flush=True)
+    print(f"\n💡 Click tray icon to show/hide window", file=sys.stderr, flush=True)
+    print(f"💡 Right-click tray icon for menu", file=sys.stderr, flush=True)
     print(f"📝 Logs: {LOG_FILE}\n", file=sys.stderr, flush=True)
     
     # 运行应用

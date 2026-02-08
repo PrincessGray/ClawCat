@@ -43,3 +43,10 @@ dist/
 tmp/
 temp/
 /ClawCatPlugin/node_modules
+
+# Packaged executables (too large for GitHub, use Releases instead)
+ClawCatPlugin/public/ClawCat.exe
+ClawCatPlugin/public/ClawCat
+ClawCatPlugin/dist/
+ClawCatPlugin/build/
+*.exe

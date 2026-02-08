@@ -90,32 +90,84 @@ def check_dependencies() -> Dict:
     else:
         result["missing"].extend(missing_python)
 
-    # Check if frontend is built (public/index.html exists)
+    # Check if frontend files exist (should be provided in repository)
     public_dir = PLUGIN_ROOT / "public"
     index_html = public_dir / "index.html"
     if not index_html.exists():
-        result["missing"].append("public/index.html (run 'npm run build' first)")
+        result["missing"].append("public/index.html (should be provided in repository)")
 
     return result
 
+def find_conda():
+    """Find conda executable"""
+    # First try which/where
+    conda_path = shutil.which("conda")
+    if conda_path:
+        return conda_path
+    
+    # Try common locations
+    if platform.system() == "Windows":
+        conda_paths = [
+            Path.home() / "miniconda3" / "Scripts" / "conda.exe",
+            Path.home() / "anaconda3" / "Scripts" / "conda.exe",
+            Path("C:/ProgramData/miniconda3/Scripts/conda.exe"),
+            Path("C:/ProgramData/anaconda3/Scripts/conda.exe"),
+        ]
+    else:
+        conda_paths = [
+            Path.home() / "miniconda3" / "bin" / "conda",
+            Path.home() / "anaconda3" / "bin" / "conda",
+        ]
+    
+    for path in conda_paths:
+        if path.exists():
+            return str(path)
+    
+    return None
+
 def install_python_deps() -> bool:
-    """Install Python dependencies"""
+    """Install Python dependencies using current Python environment"""
     requirements_file = PLUGIN_ROOT / "requirements.txt"
     if not requirements_file.exists():
         print(f"Error: requirements.txt not found at {requirements_file}")
         return False
 
     print("Installing Python dependencies...")
+    print(f"  Using Python: {sys.executable}")
+    
+    # Use current Python (conda environment should already be activated by launcher script)
+    cmd = [sys.executable, "-m", "pip", "install", "-r", str(requirements_file)]
+    
     try:
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "-r", str(requirements_file)],
+        # Run with timeout and capture output
+        result = subprocess.run(
+            cmd,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=300,  # 5 minute timeout
+            check=False  # Don't raise on non-zero exit
         )
-        print("✓ Python dependencies installed")
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"Error installing Python dependencies: {e}")
+        
+        if result.returncode == 0:
+            print("✓ Python dependencies installed")
+            return True
+        else:
+            # Show error output if available
+            if result.stdout:
+                error_lines = result.stdout.strip().split('\n')
+                # Show last few lines of error
+                for line in error_lines[-5:]:
+                    if line.strip():
+                        print(f"  {line}")
+            print("✗ Failed to install Python dependencies")
+            return False
+            
+    except subprocess.TimeoutExpired:
+        print("✗ Installation timeout (exceeded 5 minutes)")
+        return False
+    except Exception as e:
+        print(f"✗ Error installing Python dependencies: {e}")
         return False
 
 def install_node_deps() -> bool:
@@ -283,16 +335,12 @@ def start_services() -> Dict:
         if not env_check["python"]:
             return {"success": False, "errors": [e for e in env_check["errors"] if "Python" in e]}
 
-    # Check dependencies
-    deps_check = check_dependencies()
-    if not deps_check["python_deps"]:
-        print("Missing dependencies detected:")
-        for dep in deps_check["missing"]:
-            print(f"  - {dep}")
-
-        # Install Python dependencies
-        if not install_python_deps():
-            return {"success": False, "error": "Failed to install Python dependencies"}
+    # Install Python dependencies (always run once, pip will skip if already installed)
+    # Note: Dependencies will also be installed by the launcher scripts if needed
+    print("Installing Python dependencies...")
+    if not install_python_deps():
+        print("⚠ Dependency installation failed, but continuing...")
+        print("  The launcher script will attempt to install dependencies if needed")
 
     # Check server port (window process includes server and frontend)
     if not status.get("window", {}).get("running", False):
@@ -301,11 +349,12 @@ def start_services() -> Dict:
             print(f"✗ {error}")
             return {"success": False, "error": error}
 
-    # Check if public/ exists and has index.html (frontend build required)
+    # Check if public/ exists and has index.html (frontend files should be in repository)
     public_dir = PLUGIN_ROOT / "public"
     index_html = public_dir / "index.html"
     if not index_html.exists():
-        print("✗ Frontend build not found. Run 'npm run build' first.")
+        print("✗ Frontend files not found: public/index.html")
+        print("  Frontend files should be provided in the repository.")
         return {"success": False, "error": "public/index.html not found"}
 
     pids = {}
@@ -316,13 +365,12 @@ def start_services() -> Dict:
         # Note: launch_window.py will start the HTTP server internally, which serves both API and frontend
         if not status.get("window", {}).get("running", False):
             print("Starting ClawCat window...")
+            
+            # Start window directly (conda environment should already be activated by launcher script)
             window_script = PLUGIN_ROOT / "src" / "launch_window.py"
             
-            # On Windows, GUI apps need different handling
-            # Don't redirect stdout/stderr for GUI apps, or use DETACHED_PROCESS
             if platform.system() == "Windows":
-                # Use DETACHED_PROCESS to allow GUI window to show
-                # Don't redirect stdout/stderr so we can see errors
+                # On Windows, use DETACHED_PROCESS to allow GUI window to show
                 window_process = subprocess.Popen(
                     [sys.executable, str(window_script)],
                     creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS,
@@ -338,17 +386,34 @@ def start_services() -> Dict:
                 )
             
             # Wait a moment to check if process started successfully
-            time.sleep(0.5)
+            time.sleep(1.0)
             if window_process.poll() is not None:
                 # Process exited immediately, get error
                 error_msg = "Window process exited immediately"
+                
+                # Try to read error from log file
+                log_dir = PID_FILE_DIR / "logs"
+                if log_dir.exists():
+                    log_files = sorted(log_dir.glob("clawcat_*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
+                    if log_files:
+                        try:
+                            with open(log_files[0], 'r', encoding='utf-8', errors='ignore') as f:
+                                log_content = f.read()
+                                if log_content:
+                                    lines = log_content.strip().split('\n')
+                                    last_lines = '\n'.join(lines[-10:]) if len(lines) > 10 else log_content
+                                    error_msg = f"{error_msg}\nLast log entries:\n{last_lines}"
+                        except:
+                            pass
+                
                 if platform.system() != "Windows":
                     try:
                         stderr_output = window_process.stderr.read().decode('utf-8', errors='ignore')
                         if stderr_output:
-                            error_msg = f"{error_msg}: {stderr_output}"
+                            error_msg = f"{error_msg}\n{stderr_output}"
                     except:
                         pass
+                
                 print(f"✗ {error_msg}")
                 return {"success": False, "error": error_msg}
             
