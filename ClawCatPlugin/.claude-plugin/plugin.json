@@ -7,6 +7,18 @@
   },
   "repository": "https://github.com/PrincessGray/ClawCat",
   "license": "MIT",
-  "keywords": ["live2d", "desktop-pet", "visual-feedback", "hooks"]
+  "keywords": ["live2d", "desktop-pet", "visual-feedback", "hooks"],
+  "mcpServers": {
+    "clawcat-service": {
+      "command": "python",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/tools/service_manager.py",
+        "start"
+      ],
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
 }
 

@@ -14,7 +14,10 @@ A Live2D desktop pet that integrates with Claude Code to provide visual feedback
 # 1. Add the marketplace
 /plugin marketplace add PrincessGray/ClawCat
 
-# 2. Install the plugin
+# 2. Remove the marketplace
+/plugin marketplace remove clawcat-marketplace
+
+# 3. Install the plugin
 /plugin install clawcat
 ```
 

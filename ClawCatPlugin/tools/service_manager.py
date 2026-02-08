@@ -432,7 +432,31 @@ def main():
 
     if command == "start":
         result = start_services()
-        sys.exit(0 if result["success"] else 1)
+        if not result["success"]:
+            sys.exit(1)
+
+        # Keep running to maintain MCP Server process
+        # This allows Claude Code to manage the lifecycle
+        print("\n🐱 ClawCat is running. Press Ctrl+C to stop.")
+        try:
+            import signal
+
+            def signal_handler(sig, frame):
+                print("\n\nReceived interrupt signal, stopping services...")
+                stop_services()
+                sys.exit(0)
+
+            signal.signal(signal.SIGINT, signal_handler)
+            signal.signal(signal.SIGTERM, signal_handler)
+
+            # Keep the process alive
+            while True:
+                time.sleep(1)
+
+        except KeyboardInterrupt:
+            print("\n\nStopping services...")
+            stop_services()
+            sys.exit(0)
 
     elif command == "stop":
         stop_services()
