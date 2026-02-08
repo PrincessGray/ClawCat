@@ -1,0 +1,11 @@
+{
+  "name": "ClawCat Marketplace",
+  "description": "Official marketplace for ClawCat - Live2D desktop pet for Claude Code",
+  "plugins": [
+    {
+      "name": "clawcat",
+      "source": "./ClawCatPlugin",
+      "description": "Live2D desktop pet with visual feedback and interaction overlay"
+    }
+  ]
+}

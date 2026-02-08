@@ -1,0 +1,16 @@
+{
+  "name": "clawcat",
+  "version": "1.0.0",
+  "description": "Live2D desktop pet with Claude Code integration - Visual feedback and interaction overlay",
+  "author": {
+    "name": "K1mG0ng"
+  },
+  "minClaudeVersion": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/ClawCat"
+  },
+  "license": "MIT",
+  "keywords": ["live2d", "desktop-pet", "visual-feedback", "hooks"]
+}
+

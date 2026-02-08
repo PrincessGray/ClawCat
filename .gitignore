@@ -1,0 +1,45 @@
+# Node
+node_modules/
+dist/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+search_fusion.log
+
+# Build
+build/
+dist/
+
+# Package files
+*.egg-info/
+.eggs/
+
+# Temporary
+.cache/
+tmp/
+temp/
+/ClawCatPlugin/node_modules
