@@ -48,6 +48,39 @@ except ImportError as e:
 # ============================================================================
 SERVER_PORT = 22622  # Must match CAT_SERVER port in notify.py
 
+# Get base directory for static files
+if getattr(sys, 'frozen', False):
+    # Packaged executable
+    STATIC_DIR = Path(sys._MEIPASS)
+else:
+    # Development mode
+    STATIC_DIR = Path(__file__).parent.parent
+
+# Frontend files location (all in public directory)
+FRONTEND_PUBLIC = STATIC_DIR / "public"
+
+# File cache for static files (in-memory cache)
+_file_cache = {}
+_file_cache_timestamps = {}
+
+def get_file_with_cache(file_path: Path):
+    """Get file content with caching"""
+    file_str = str(file_path)
+    mtime = file_path.stat().st_mtime if file_path.exists() else 0
+    
+    # Check if cache is valid
+    if file_str in _file_cache and _file_cache_timestamps.get(file_str) == mtime:
+        return _file_cache[file_str]
+    
+    # Read and cache file
+    if file_path.exists():
+        with open(file_path, 'rb') as f:
+            content = f.read()
+        _file_cache[file_str] = content
+        _file_cache_timestamps[file_str] = mtime
+        return content
+    return None
+
 # Shared state
 class ServerState:
     def __init__(self):
@@ -93,13 +126,74 @@ class ClawCatHandler(BaseHTTPRequestHandler):
             self.send_error(404, "Not Found")
 
     def do_GET(self):
-        """Handle GET requests"""
+        """Handle GET requests - all files served from public directory"""
         parsed_path = urlparse(self.path)
 
         if parsed_path.path == "/status":
             self.handle_status()
+        elif parsed_path.path == "/" or parsed_path.path == "/index.html":
+            # Serve index.html from public
+            self.serve_static_file(FRONTEND_PUBLIC / "index.html", "text/html")
+        elif parsed_path.path.startswith("/assets/") or parsed_path.path.startswith("/js/") or parsed_path.path.startswith("/models/"):
+            # Serve all static files from public directory
+            file_path = FRONTEND_PUBLIC / parsed_path.path[1:]  # Remove leading /
+            if file_path.exists():
+                content_type = self.get_content_type(file_path)
+                self.serve_static_file(file_path, content_type)
+            else:
+                self.send_error(404, "Not Found")
         else:
             self.send_error(404, "Not Found")
+    
+    def get_content_type(self, file_path):
+        """Get content type based on file extension"""
+        ext = file_path.suffix.lower()
+        content_types = {
+            '.html': 'text/html',
+            '.js': 'application/javascript',
+            '.css': 'text/css',
+            '.json': 'application/json',
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.gif': 'image/gif',
+            '.svg': 'image/svg+xml',
+            '.ico': 'image/x-icon',
+            '.flac': 'audio/flac',
+            '.moc3': 'application/octet-stream',
+            '.motion3.json': 'application/json',
+            '.exp3.json': 'application/json',
+            '.cdi3.json': 'application/json',
+            '.model3.json': 'application/json',
+        }
+        return content_types.get(ext, 'application/octet-stream')
+    
+    def serve_static_file(self, file_path, content_type):
+        """Serve a static file with caching"""
+        try:
+            content = get_file_with_cache(file_path)
+            if content is None:
+                self.send_error(404, "Not Found")
+                return
+            
+            self.send_response(200)
+            self.send_header('Content-Type', content_type)
+            self.send_header('Content-Length', str(len(content)))
+            self.send_header('Access-Control-Allow-Origin', '*')
+            
+            # Enable browser caching for static assets (1 hour)
+            # But no-cache for HTML to ensure updates are seen
+            if content_type == 'text/html':
+                self.send_header('Cache-Control', 'no-cache, must-revalidate')
+            else:
+                # Cache static assets for 1 hour
+                self.send_header('Cache-Control', 'public, max-age=3600')
+            
+            self.end_headers()
+            self.wfile.write(content)
+        except Exception as e:
+            print(f"Error serving file {file_path}: {e}", file=sys.stderr, flush=True)
+            self.send_error(500, "Internal Server Error")
     
     def do_OPTIONS(self):
         """Handle OPTIONS requests (CORS preflight)"""

@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "clawcat-service": {
+      "command": "python",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/tools/service_manager.py",
+        "start"
+      ],
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}

@@ -1,5 +1,0 @@
-{
-  "name": "stop",
-  "description": "Stop all ClawCat services gracefully",
-  "command": "python \"${CLAUDE_PLUGIN_ROOT}/scripts/service_manager.py\" stop"
-}

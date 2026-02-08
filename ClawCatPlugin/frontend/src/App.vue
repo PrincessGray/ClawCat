@@ -539,12 +539,18 @@ onMounted(async () => {
     }
     if (currentStatus.value.state) {
       setState(currentStatus.value.state)
+    } else {
+      // 如果没有状态，确保初始状态启动动画
+      // slacking 模式默认 resting 状态，应该启动摇杆控制
+      if (currentMode.value === 'slacking') {
+        console.log('🎮 Initial slacking mode: Ensuring stick control starts')
+      }
     }
 
-    // 定期获取后端状态（每 500ms，更快响应）
+    // 定期获取后端状态（每 1s，减少服务器压力）
     statusPollInterval = window.setInterval(async () => {
       await fetchStatus()
-    }, 500)
+    }, 1000)
 
     // 监听键盘事件：按 T 键显示/隐藏测试面板
     window.addEventListener('keydown', (e) => {

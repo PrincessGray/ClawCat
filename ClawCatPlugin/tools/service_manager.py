@@ -16,9 +16,8 @@ from typing import Dict, Optional, List
 
 # Constants
 REQUIRED_PYTHON_VERSION = (3, 8)
-REQUIRED_NODE_VERSION = (18, 0)
-VITE_PORT = 6173
-SERVER_PORT = 22622
+REQUIRED_NODE_VERSION = (18, 0)  # Only needed for building frontend
+SERVER_PORT = 22622  # Server serves both API and frontend
 PID_FILE_DIR = Path.home() / ".claude" / "clawcat"
 PID_FILE = PID_FILE_DIR / "pids.json"
 PLUGIN_ROOT = Path(__file__).parent.parent.absolute()
@@ -91,12 +90,11 @@ def check_dependencies() -> Dict:
     else:
         result["missing"].extend(missing_python)
 
-    # Check Node.js dependencies
-    node_modules = PLUGIN_ROOT / "node_modules"
-    if node_modules.exists() and (node_modules / ".package-lock.json").exists():
-        result["node_deps"] = True
-    else:
-        result["missing"].append("node_modules")
+    # Check if frontend is built (public/index.html exists)
+    public_dir = PLUGIN_ROOT / "public"
+    index_html = public_dir / "index.html"
+    if not index_html.exists():
+        result["missing"].append("public/index.html (run 'npm run build' first)")
 
     return result
 
@@ -233,12 +231,10 @@ def get_service_status() -> Dict:
     """Get status of all services"""
     pids = read_pids()
     status = {
-        "vite": {"running": False, "pid": None},
-        "server": {"running": False, "pid": None},
-        "window": {"running": False, "pid": None}
+        "window": {"running": False, "pid": None}  # window includes server and frontend
     }
 
-    for service in ["vite", "server", "window"]:
+    for service in ["window"]:
         pid_key = f"{service}_pid"
         if pid_key in pids:
             pid = pids[pid_key]
@@ -257,100 +253,133 @@ def start_services() -> Dict:
     """Start all ClawCat services"""
     result = {"success": False, "pids": {}, "errors": []}
 
-    # Check if already running
-    if is_service_running():
-        status = get_service_status()
-        print("ClawCat services are already running:")
-        for service, info in status.items():
-            if info["running"]:
-                print(f"  {service}: PID {info['pid']}")
-        return {"success": False, "error": "Services already running"}
+    # Check which services are running
+    status = get_service_status()
+    running_services = [s for s, info in status.items() if info["running"]]
+    
+    if running_services:
+        print("Some ClawCat services are already running:")
+        for service in running_services:
+            print(f"  {service}: PID {status[service]['pid']}")
+        
+        # Check if all required services are running
+        required_services = ["window"]  # window includes server and frontend
+        missing_services = [s for s in required_services if not status[s]["running"]]
+        
+        if missing_services:
+            print(f"\n⚠ Missing services: {', '.join(missing_services)}")
+            print("Starting missing services...")
+            # Continue to start missing services instead of returning
+        else:
+            print("\n✓ All services are already running")
+            return {"success": False, "error": "All services already running"}
 
-    # Check environment
+    # Check environment (only Python is required now, Node.js only needed for building)
     env_check = check_environment()
-    if not (env_check["python"] and env_check["node"]):
+    if not env_check["python"]:
         for error in env_check["errors"]:
-            print(f"✗ {error}")
-        return {"success": False, "errors": env_check["errors"]}
+            if "Python" in error:  # Only show Python errors
+                print(f"✗ {error}")
+        if not env_check["python"]:
+            return {"success": False, "errors": [e for e in env_check["errors"] if "Python" in e]}
 
     # Check dependencies
     deps_check = check_dependencies()
-    if not (deps_check["python_deps"] and deps_check["node_deps"]):
+    if not deps_check["python_deps"]:
         print("Missing dependencies detected:")
         for dep in deps_check["missing"]:
             print(f"  - {dep}")
 
-        # Install dependencies
-        if not deps_check["python_deps"]:
-            if not install_python_deps():
-                return {"success": False, "error": "Failed to install Python dependencies"}
+        # Install Python dependencies
+        if not install_python_deps():
+            return {"success": False, "error": "Failed to install Python dependencies"}
 
-        if not deps_check["node_deps"]:
-            if not install_node_deps():
-                return {"success": False, "error": "Failed to install Node.js dependencies"}
+    # Check server port (window process includes server and frontend)
+    if not status.get("window", {}).get("running", False):
+        if not check_port_available(SERVER_PORT):
+            error = f"Port {SERVER_PORT} is already in use"
+            print(f"✗ {error}")
+            return {"success": False, "error": error}
 
-    # Check port availability
-    if not check_port_available(VITE_PORT):
-        error = f"Port {VITE_PORT} is already in use"
-        print(f"✗ {error}")
-        return {"success": False, "error": error}
-
-    if not check_port_available(SERVER_PORT):
-        error = f"Port {SERVER_PORT} is already in use"
-        print(f"✗ {error}")
-        return {"success": False, "error": error}
+    # Check if public/ exists and has index.html (frontend build required)
+    public_dir = PLUGIN_ROOT / "public"
+    index_html = public_dir / "index.html"
+    if not index_html.exists():
+        print("✗ Frontend build not found. Run 'npm run build' first.")
+        return {"success": False, "error": "public/index.html not found"}
 
     pids = {}
+    existing_pids = read_pids()  # Read existing PIDs to preserve running services
 
     try:
-        # Start Vite dev server
-        print("Starting Vite dev server...")
-        vite_process = subprocess.Popen(
-            ["npm", "run", "dev"],
-            cwd=str(PLUGIN_ROOT),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if platform.system() == "Windows" else 0
-        )
-        pids["vite_pid"] = vite_process.pid
-        print(f"✓ Vite server started (PID: {vite_process.pid})")
-
-        # Wait for Vite to be ready
-        time.sleep(3)
-
-        # Start Python HTTP server
-        print("Starting HTTP server...")
-        server_script = PLUGIN_ROOT / "src" / "server.py"
-        server_process = subprocess.Popen(
-            [sys.executable, str(server_script)],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if platform.system() == "Windows" else 0
-        )
-        pids["server_pid"] = server_process.pid
-        print(f"✓ HTTP server started (PID: {server_process.pid})")
-
-        # Wait for server to be ready
-        time.sleep(2)
-
-        # Start PyQt window
-        print("Starting ClawCat window...")
-        window_script = PLUGIN_ROOT / "src" / "launch_window.py"
-        window_process = subprocess.Popen(
-            [sys.executable, str(window_script)],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if platform.system() == "Windows" else 0
-        )
-        pids["window_pid"] = window_process.pid
-        print(f"✓ ClawCat window started (PID: {window_process.pid})")
+        # Start PyQt window (only if not already running)
+        # Note: launch_window.py will start the HTTP server internally, which serves both API and frontend
+        if not status.get("window", {}).get("running", False):
+            print("Starting ClawCat window...")
+            window_script = PLUGIN_ROOT / "src" / "launch_window.py"
+            
+            # On Windows, GUI apps need different handling
+            # Don't redirect stdout/stderr for GUI apps, or use DETACHED_PROCESS
+            if platform.system() == "Windows":
+                # Use DETACHED_PROCESS to allow GUI window to show
+                # Don't redirect stdout/stderr so we can see errors
+                window_process = subprocess.Popen(
+                    [sys.executable, str(window_script)],
+                    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS,
+                    cwd=str(PLUGIN_ROOT)
+                )
+            else:
+                # On Unix-like systems, use normal process
+                window_process = subprocess.Popen(
+                    [sys.executable, str(window_script)],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    cwd=str(PLUGIN_ROOT)
+                )
+            
+            # Wait a moment to check if process started successfully
+            time.sleep(0.5)
+            if window_process.poll() is not None:
+                # Process exited immediately, get error
+                error_msg = "Window process exited immediately"
+                if platform.system() != "Windows":
+                    try:
+                        stderr_output = window_process.stderr.read().decode('utf-8', errors='ignore')
+                        if stderr_output:
+                            error_msg = f"{error_msg}: {stderr_output}"
+                    except:
+                        pass
+                print(f"✗ {error_msg}")
+                return {"success": False, "error": error_msg}
+            
+            pids["window_pid"] = window_process.pid
+            # Get log file location (from launch_window.py)
+            log_dir = PID_FILE_DIR / "logs"
+            if log_dir.exists():
+                log_files = sorted(log_dir.glob("clawcat_*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
+                if log_files:
+                    print(f"✓ ClawCat window started (PID: {window_process.pid})")
+                    print(f"  Window should appear shortly...")
+                    print(f"  📝 Log file: {log_files[0]}")
+                else:
+                    print(f"✓ ClawCat window started (PID: {window_process.pid})")
+                    print(f"  Window should appear shortly...")
+                    print(f"  📝 Log directory: {log_dir}")
+            else:
+                print(f"✓ ClawCat window started (PID: {window_process.pid})")
+                print(f"  Window should appear shortly...")
+                print(f"  📝 Log directory: {log_dir}")
+        else:
+            # Window already running, use existing PID
+            if "window_pid" in existing_pids:
+                pids["window_pid"] = existing_pids["window_pid"]
+                print(f"✓ Using existing ClawCat window (PID: {existing_pids['window_pid']})")
 
         # Save PIDs
         write_pids(pids)
 
-        print("\n✓ All ClawCat services started successfully!")
-        print(f"  Vite: http://localhost:{VITE_PORT}")
-        print(f"  Server: http://localhost:{SERVER_PORT}")
+        print(f"\n✓ ClawCat started successfully!")
+        print(f"  Server: http://localhost:{SERVER_PORT} (serves both API and frontend)")
 
         result["success"] = True
         result["pids"] = pids
@@ -375,8 +404,8 @@ def stop_services() -> bool:
 
     print("Stopping ClawCat services...")
 
-    # Stop in reverse order: window, server, vite
-    for service in ["window", "server", "vite"]:
+    # Stop window (includes server and frontend)
+    for service in ["window"]:
         pid_key = f"{service}_pid"
         if pid_key in pids:
             pid = pids[pid_key]
@@ -426,3 +455,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

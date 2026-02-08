@@ -107,9 +107,9 @@ export function useModeState() {
 
     // Slacking mode: 所有状态都有摇杆控制（已在 updateModeBehavior 中启动，这里确保继续运行）
     if (currentMode.value === 'slacking') {
-      // 如果摇杆定时器不存在，重新启动
-      // 注意：这里需要检查定时器是否存在，但由于是闭包，我们通过调用 startSpyStickControl 来确保运行
+      // 确保摇杆控制正在运行
       startSpyStickControl()
+      console.log('🎮 State changed: Ensuring stick control is running')
     }
 
     // Spying mode: 只在 working 状态时触发自动动作
