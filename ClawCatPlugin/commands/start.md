@@ -1,10 +1,10 @@
 ---
-description: Start ClawCat services (uses launcher scripts)
+description: Start ClawCat services using launcher scripts
 ---
 
 # Start ClawCat
 
-This command starts ClawCat services. It uses platform-specific launcher scripts that automatically handle conda environment activation.
+This command starts ClawCat services using platform-specific launcher scripts that automatically handle conda environment activation.
 
 **Prerequisites**:
 
@@ -13,9 +13,7 @@ This command starts ClawCat services. It uses platform-specific launcher scripts
 
 **Note**: Services will run in the background. The ClawCat window will appear and stay open.
 
-## Method : Direct Script Launch
-
-You can also launch directly using the platform-specific scripts:
+## Launch Command
 
 ### Windows
 
@@ -29,18 +27,20 @@ You can also launch directly using the platform-specific scripts:
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/start_window.sh"
 ```
 
+## What the Scripts Do
+
 The launcher scripts will:
 
-- Automatically detect and activate conda base environment
-- Start the ClawCat window with all dependencies
+1. Automatically detect and activate conda base environment (if available)
+2. Start the service manager which installs Python dependencies if needed
+3. Launch the ClawCat window with all dependencies
 
 ## Alternative Commands
 
-- **Direct Script**: `/clawcat:start_window` - Uses launcher scripts directly
 - **EXE Version**: `/clawcat:start_exe` - Uses bundled executable (no dependencies needed)
 
 ## Dependency Installation
 
-Python dependencies are automatically installed when you run `/clawcat:start` via `service_manager.py`. The script will use conda if available, otherwise use pip directly.
+Python dependencies are automatically installed by the service manager when you run the launcher script. The script activates conda environment first, then installs dependencies using pip in the conda environment.
 
 To stop ClawCat, use `/clawcat:stop` or press Ctrl+C in the terminal where it's running.
