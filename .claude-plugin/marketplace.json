@@ -1,6 +1,10 @@
 {
-  "name": "ClawCat-Marketplace",
+  "name": "clawcat-marketplace",
   "description": "Official marketplace for ClawCat - Live2D desktop pet for Claude Code",
+  "owner": {
+    "name": "PrincessGray",
+    "url": "https://github.com/PrincessGray"
+  },
   "plugins": [
     {
       "name": "clawcat",
