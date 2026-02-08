@@ -5,11 +5,7 @@
   "author": {
     "name": "PrincessGray"
   },
-  "minClaudeVersion": "1.0.0",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/PrincessGray/ClawCat"
-  },
+  "repository": "https://github.com/PrincessGray/ClawCat",
   "license": "MIT",
   "keywords": ["live2d", "desktop-pet", "visual-feedback", "hooks"]
 }
