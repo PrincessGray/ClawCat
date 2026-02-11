@@ -52,5 +52,4 @@ ClawCatPlugin/build/
 *.exe
 
 # cc
-.claude-plugin/
 .claude
