@@ -48,10 +48,10 @@ def install_python_packages():
             text=True,
             check=True
         )
-        print("✓ Python dependencies installed successfully")
+        print("ok Python dependencies installed successfully")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"✗ Error installing Python dependencies:")
+        print(f"error Error installing Python dependencies:")
         print(e.stderr)
         return False
 
@@ -81,10 +81,10 @@ def install_node_packages():
             text=True,
             check=True
         )
-        print(f"✓ Node.js dependencies installed successfully")
+        print(f"ok Node.js dependencies installed successfully")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"✗ Error installing Node.js dependencies:")
+        print(f"error Error installing Node.js dependencies:")
         print(e.stderr)
         return False
 
@@ -99,23 +99,23 @@ def main():
     if missing_python:
         print(f"Missing Python packages: {', '.join(missing_python)}")
         if not install_python_packages():
-            print("\n✗ Failed to install Python dependencies")
+            print("\nerror Failed to install Python dependencies")
             sys.exit(1)
     else:
-        print("✓ All Python packages are installed")
+        print("ok All Python packages are installed")
 
     # Check Node.js packages
     print("\nChecking Node.js packages...")
     if not check_node_modules():
         print("node_modules not found")
         if not install_node_packages():
-            print("\n✗ Failed to install Node.js dependencies")
+            print("\nerror Failed to install Node.js dependencies")
             sys.exit(1)
     else:
-        print("✓ node_modules exists")
+        print("ok node_modules exists")
 
     print("\n" + "=" * 50)
-    print("✓ All dependencies are installed!")
+    print("ok All dependencies are installed!")
     sys.exit(0)
 
 if __name__ == "__main__":

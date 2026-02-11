@@ -70,7 +70,7 @@ def print_message(message, is_error=False):
 def install_dependencies():
     """Install Python dependencies from requirements.txt using conda if available"""
     if not REQUIREMENTS_FILE.exists():
-        print_message(f"✗ requirements.txt not found at {REQUIREMENTS_FILE}", is_error=True)
+        print_message(f"error requirements.txt not found at {REQUIREMENTS_FILE}", is_error=True)
         return False
     
     # Check if dependencies are already installed
@@ -79,7 +79,7 @@ def install_dependencies():
     
     if not missing:
         # All dependencies already installed
-        print_message("✓ All Python dependencies are already installed")
+        print_message("ok All Python dependencies are already installed")
         return True
     
     # Try to use conda if available
@@ -108,17 +108,17 @@ def install_dependencies():
         )
         
         if result.returncode == 0:
-            print_message(f"✓ Installed Python dependencies: {', '.join(missing)}")
+            print_message(f"ok Installed Python dependencies: {', '.join(missing)}")
             return True
         else:
             error_msg = result.stderr[:200] if result.stderr else result.stdout[:200]
-            print_message(f"✗ Failed to install dependencies: {error_msg}", is_error=True)
+            print_message(f"error Failed to install dependencies: {error_msg}", is_error=True)
             return False
     except subprocess.TimeoutExpired:
-        print_message("✗ Installation timeout (exceeded 5 minutes)", is_error=True)
+        print_message("error Installation timeout (exceeded 5 minutes)", is_error=True)
         return False
     except Exception as e:
-        print_message(f"✗ Error installing dependencies: {str(e)[:200]}", is_error=True)
+        print_message(f"error Error installing dependencies: {str(e)[:200]}", is_error=True)
         return False
 
 def main():

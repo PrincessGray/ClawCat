@@ -150,7 +150,7 @@ def install_python_deps() -> bool:
         )
         
         if result.returncode == 0:
-            print("✓ Python dependencies installed")
+            print("ok Python dependencies installed")
             return True
         else:
             # Show error output if available
@@ -160,14 +160,14 @@ def install_python_deps() -> bool:
                 for line in error_lines[-5:]:
                     if line.strip():
                         print(f"  {line}")
-            print("✗ Failed to install Python dependencies")
+            print("error Failed to install Python dependencies")
             return False
             
     except subprocess.TimeoutExpired:
-        print("✗ Installation timeout (exceeded 5 minutes)")
+        print("error Installation timeout (exceeded 5 minutes)")
         return False
     except Exception as e:
-        print(f"✗ Error installing Python dependencies: {e}")
+        print(f"error Error installing Python dependencies: {e}")
         return False
 
 def install_node_deps() -> bool:
@@ -193,7 +193,7 @@ def install_node_deps() -> bool:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
-        print(f"✓ Node.js dependencies installed using {npm_cmd}")
+        print(f"ok Node.js dependencies installed using {npm_cmd}")
         return True
     except subprocess.CalledProcessError as e:
         print(f"Error installing Node.js dependencies: {e}")
@@ -323,7 +323,7 @@ def start_services() -> Dict:
             print("Starting missing services...")
             # Continue to start missing services instead of returning
         else:
-            print("\n✓ All services are already running")
+            print("\nok All services are already running")
             return {"success": False, "error": "All services already running"}
 
     # Check environment (only Python is required now, Node.js only needed for building)
@@ -331,7 +331,7 @@ def start_services() -> Dict:
     if not env_check["python"]:
         for error in env_check["errors"]:
             if "Python" in error:  # Only show Python errors
-                print(f"✗ {error}")
+                print(f"error {error}")
         if not env_check["python"]:
             return {"success": False, "errors": [e for e in env_check["errors"] if "Python" in e]}
 
@@ -346,14 +346,14 @@ def start_services() -> Dict:
     if not status.get("window", {}).get("running", False):
         if not check_port_available(SERVER_PORT):
             error = f"Port {SERVER_PORT} is already in use"
-            print(f"✗ {error}")
+            print(f"error {error}")
             return {"success": False, "error": error}
 
     # Check if public/ exists and has index.html (frontend files should be in repository)
     public_dir = PLUGIN_ROOT / "public"
     index_html = public_dir / "index.html"
     if not index_html.exists():
-        print("✗ Frontend files not found: public/index.html")
+        print("error Frontend files not found: public/index.html")
         print("  Frontend files should be provided in the repository.")
         return {"success": False, "error": "public/index.html not found"}
 
@@ -413,7 +413,7 @@ def start_services() -> Dict:
                     except:
                         pass
                 
-                print(f"✗ {error_msg}")
+                print(f"error {error_msg}")
                 return {"success": False, "error": error_msg}
             
             pids["window_pid"] = window_process.pid
@@ -422,34 +422,34 @@ def start_services() -> Dict:
             if log_dir.exists():
                 log_files = sorted(log_dir.glob("clawcat_*.log"), key=lambda p: p.stat().st_mtime, reverse=True)
                 if log_files:
-                    print(f"✓ ClawCat window started (PID: {window_process.pid})")
+                    print(f"ok ClawCat window started (PID: {window_process.pid})")
                     print(f"  Window should appear shortly...")
                     print(f"  📝 Log file: {log_files[0]}")
                 else:
-                    print(f"✓ ClawCat window started (PID: {window_process.pid})")
+                    print(f"ok ClawCat window started (PID: {window_process.pid})")
                     print(f"  Window should appear shortly...")
                     print(f"  📝 Log directory: {log_dir}")
             else:
-                print(f"✓ ClawCat window started (PID: {window_process.pid})")
+                print(f"ok ClawCat window started (PID: {window_process.pid})")
                 print(f"  Window should appear shortly...")
                 print(f"  📝 Log directory: {log_dir}")
         else:
             # Window already running, use existing PID
             if "window_pid" in existing_pids:
                 pids["window_pid"] = existing_pids["window_pid"]
-                print(f"✓ Using existing ClawCat window (PID: {existing_pids['window_pid']})")
+                print(f"ok Using existing ClawCat window (PID: {existing_pids['window_pid']})")
 
         # Save PIDs
         write_pids(pids)
 
-        print(f"\n✓ ClawCat started successfully!")
+        print(f"\nok ClawCat started successfully!")
         print(f"  Server: http://localhost:{SERVER_PORT} (serves both API and frontend)")
 
         result["success"] = True
         result["pids"] = pids
 
     except Exception as e:
-        print(f"\n✗ Error starting services: {e}")
+        print(f"\nerror Error starting services: {e}")
         # Clean up any started processes
         for pid in pids.values():
             terminate_process(pid)
@@ -476,15 +476,15 @@ def stop_services() -> bool:
             if is_process_running(pid):
                 print(f"Stopping {service} (PID: {pid})...")
                 if terminate_process(pid):
-                    print(f"✓ {service} stopped")
+                    print(f"ok {service} stopped")
                 else:
-                    print(f"✗ Failed to stop {service}")
+                    print(f"error Failed to stop {service}")
 
     # Clean up PID file
     if PID_FILE.exists():
         PID_FILE.unlink()
 
-    print("\n✓ All ClawCat services stopped")
+    print("\nok All ClawCat services stopped")
     return True
 
 def main():

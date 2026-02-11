@@ -20,19 +20,81 @@ A Live2D desktop pet that integrates with Claude Code to provide visual feedback
 /plugin install clawcat
 ```
 
+### Activate Hooks
+
+After installation, you need to exit and resume Claude Code to activate the hooks:
+
+```bash
+# Exit Claude Code
+exit
+
+# Resume Claude Code (this activates the hooks)
+claude-resume
+
+# Now you can start ClawCat
+/clawcat:start
+```
+
 ### Usage
 
 Start ClawCat with a single command:
+
 ```bash
 /clawcat:start
 ```
 
 Stop ClawCat when you're done:
+
 ```bash
 /clawcat:stop
 ```
 
 That's it! Dependencies will be automatically installed on first start.
+
+### Installation from GitHub
+
+If you prefer to run ClawCat directly from this GitHub repo (JS frontend is already bundled, no Node.js required for normal use):
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/PrincessGray/ClawCat.git
+cd ClawCat/ClawCatPlugin
+
+# 2. Prepare conda environment:
+# The launcher scripts will automatically activate conda 'base' environment.
+# If you prefer a dedicated environment, create and activate it first:
+
+conda create -n clawcat python=3.10
+conda activate clawcat
+
+# 3. Install Python dependencies (or let the scripts install them on first run)
+pip install -r requirements.txt
+```
+
+Then start ClawCat:
+
+**Option A: Use the launcher scripts** (automatically activates conda base):
+
+- On **Windows** (PowerShell or cmd):
+
+```bash
+scripts\start_window.bat
+```
+
+- On **macOS / Linux**:
+
+```bash
+bash scripts/start_window.sh
+```
+
+**Option B: Use your current conda environment** (if you've activated a custom environment):
+
+```bash
+python scripts/service_manager.py start
+```
+
+**Note**: The launcher scripts (`start_window.bat` / `start_window.sh`) will automatically activate conda `base` environment. If you want to use a custom conda environment, activate it first and then use Option B.  
+You only need Node.js and npm if you want to **develop** or **modify** the frontend; they are not required just to run ClawCat from GitHub.
 
 ## Features
 
@@ -46,6 +108,7 @@ That's it! Dependencies will be automatically installed on first start.
 ## Documentation
 
 For detailed documentation, please see:
+
 - [English Documentation](./ClawCatPlugin/README.md)
 - [中文文档](./ClawCatPlugin/README_CN.md)
 - [Implementation Summary](./IMPLEMENTATION_SUMMARY.md)
@@ -58,7 +121,7 @@ For detailed documentation, please see:
 
 ## Project Structure
 
-```
+```text
 ClawCat/
 ├── marketplace.json              # Marketplace configuration
 ├── ClawCatPlugin/                # Plugin directory

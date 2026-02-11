@@ -26,7 +26,7 @@ def main():
         bundled_exe = PLUGIN_ROOT / exe_name
     
     if not bundled_exe.exists():
-        print(f"✗ Bundled executable not found: {exe_name}")
+        print(f"error Bundled executable not found: {exe_name}")
         print("  Please run: python tools/build_exe.py")
         print("  Or use: python scripts/start_python.py")
         sys.exit(1)
@@ -46,7 +46,7 @@ def main():
             cwd=str(PLUGIN_ROOT)
         )
     
-    print("✓ ClawCat started (EXE version)")
+    print("ok ClawCat started (EXE version)")
     print("  Server: http://localhost:22622")
 
 if __name__ == "__main__":
