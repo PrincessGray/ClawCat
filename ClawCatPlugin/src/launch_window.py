@@ -7,7 +7,7 @@ import sys
 import os
 from pathlib import Path
 from datetime import datetime
-from PyQt5.QtCore import Qt, QUrl, QPoint
+from PyQt5.QtCore import Qt, QUrl, QPoint, pyqtSignal, QObject
 from PyQt5.QtWidgets import QApplication, QMenu, QAction, QSystemTrayIcon
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings
 from PyQt5.QtGui import QScreen, QColor, QIcon
@@ -87,42 +87,124 @@ WINDOW_HEIGHT = int(DEFAULT_MODEL_HEIGHT * DEFAULT_SCALE)
 
 class TransparentWebView(QWebEngineView):
     """透明背景的 WebView"""
-    
+
+    # 信号：用于跨线程安全地移动窗口
+    move_signal = pyqtSignal(int, int)
+
     def __init__(self):
         super().__init__()
-        
+
+        # 连接信号到槽函数
+        self.move_signal.connect(self._do_move)
+
         # 设置窗口属性
-        # 使用 Qt.Tool 和 Qt.FramelessWindowHint 以隐藏任务栏显示
-        self.setWindowFlags(
-            Qt.FramelessWindowHint |  # 无边框
-            Qt.WindowStaysOnTopHint |  # 置顶
-            Qt.Tool  # 不显示在任务栏，只显示在系统托盘
-        )
-        
+        # macOS: 不使用 Qt.Tool，否则窗口会在失去焦点时消失
+        # Windows: 使用 Qt.Tool 隐藏任务栏图标
+        import platform
+        if platform.system() == 'Darwin':
+            # macOS: 使用 Qt.Window 保持窗口稳定可见
+            self.setWindowFlags(
+                Qt.FramelessWindowHint |  # 无边框
+                Qt.WindowStaysOnTopHint   # 置顶
+            )
+        else:
+            # Windows: 使用 Qt.Tool 隐藏任务栏图标
+            self.setWindowFlags(
+                Qt.FramelessWindowHint |  # 无边框
+                Qt.WindowStaysOnTopHint |  # 置顶
+                Qt.Tool  # 不显示在任务栏
+            )
+
         # 设置透明背景（关键！）
         self.setAttribute(Qt.WA_TranslucentBackground)
-        
+
         # 设置网页背景透明（关键！）
         self.page().setBackgroundColor(QColor(0, 0, 0, 0))  # 完全透明
-        
+
         # 启用透明背景支持
         settings = self.settings()
         settings.setAttribute(QWebEngineSettings.ShowScrollBars, False)
         settings.setAttribute(QWebEngineSettings.LocalContentCanAccessFileUrls, True)
-        
+
         # 设置窗口大小
         self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
-        
+
         # 加载前端页面
         self.load(QUrl(FRONTEND_URL))
-        
+
         # 拖动相关
         self.drag_position = None
         self.dragging = False
-        
+
         # 设置鼠标跟踪，确保能捕获所有鼠标移动事件
         self.setMouseTracking(True)
-    
+
+    def showEvent(self, event):
+        """窗口显示时设置 macOS 特定属性"""
+        super().showEvent(event)
+        import platform
+        if platform.system() == 'Darwin':
+            self._set_macos_all_spaces()
+
+    def _set_macos_all_spaces(self):
+        """设置窗口在所有 macOS 桌面/空间可见"""
+        try:
+            import subprocess
+            import ctypes
+            import ctypes.util
+
+            # 加载 Cocoa 框架
+            appkit = ctypes.cdll.LoadLibrary(ctypes.util.find_library('AppKit'))
+            objc = ctypes.cdll.LoadLibrary(ctypes.util.find_library('objc'))
+
+            # 定义 objc 函数
+            objc.objc_getClass.restype = ctypes.c_void_p
+            objc.objc_getClass.argtypes = [ctypes.c_char_p]
+            objc.sel_registerName.restype = ctypes.c_void_p
+            objc.sel_registerName.argtypes = [ctypes.c_char_p]
+            objc.objc_msgSend.restype = ctypes.c_void_p
+            objc.objc_msgSend.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+
+            # 获取 NSApplication
+            NSApplication = objc.objc_getClass(b'NSApplication')
+            sel_sharedApplication = objc.sel_registerName(b'sharedApplication')
+            sel_windows = objc.sel_registerName(b'windows')
+            app = objc.objc_msgSend(NSApplication, sel_sharedApplication)
+
+            # 获取窗口列表
+            windows = objc.objc_msgSend(app, sel_windows)
+
+            # 获取窗口数量
+            sel_count = objc.sel_registerName(b'count')
+            count = objc.objc_msgSend(windows, sel_count)
+
+            # 设置 collection behavior
+            # NSWindowCollectionBehaviorCanJoinAllSpaces = 1 << 0
+            # NSWindowCollectionBehaviorStationary = 1 << 4
+            behavior = (1 << 0) | (1 << 4)  # 17
+
+            sel_objectAtIndex = objc.sel_registerName(b'objectAtIndex:')
+            sel_setCollectionBehavior = objc.sel_registerName(b'setCollectionBehavior:')
+            sel_setLevel = objc.sel_registerName(b'setLevel:')
+
+            # 设置 objc_msgSend 参数类型用于带参数的调用
+            objc_msgSend_int = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_long)
+            msgSend_int = objc_msgSend_int(('objc_msgSend', objc))
+
+            # 遍历所有窗口并设置
+            for i in range(count):
+                window = msgSend_int(windows, sel_objectAtIndex, i)
+                if window:
+                    # 设置在所有桌面可见
+                    msgSend_int(window, sel_setCollectionBehavior, behavior)
+                    # 设置浮动窗口级别 (NSFloatingWindowLevel = 3)
+                    msgSend_int(window, sel_setLevel, 3)
+
+            print(f"[macOS] Window set to appear on all spaces (ctypes)", file=sys.stderr, flush=True)
+
+        except Exception as e:
+            print(f"[macOS] Failed to set all-spaces: {e}", file=sys.stderr, flush=True)
+
     def mousePressEvent(self, event):
         """鼠标按下事件 - 用于拖动窗口"""
         # 左键按下时开始拖动
@@ -234,6 +316,14 @@ class TransparentWebView(QWebEngineView):
             print("[Window] Topmost enabled", file=sys.stderr, flush=True)
         self.show()  # 重新显示窗口以应用标志
 
+    def _do_move(self, x, y):
+        """实际执行窗口移动（在主线程中）"""
+        self.move(x, y)
+
+    def safe_move(self, x, y):
+        """线程安全的窗口移动（从其他线程调用）"""
+        self.move_signal.emit(x, y)
+
 
 def position_window_bottom_right(window):
     """将窗口定位到屏幕右下角"""
@@ -267,6 +357,16 @@ def main():
     window = TransparentWebView()
     position_window_bottom_right(window)
     window.show()
+
+    # 注册窗口移动回调（用于前端拖拽）
+    try:
+        from server import server_state
+        def move_window_callback(x, y):
+            window.safe_move(x, y)  # 使用线程安全的方法
+        server_state.window_move_callback = move_window_callback
+        print("✅ Window move callback registered", file=sys.stderr, flush=True)
+    except Exception as e:
+        print(f"⚠ Failed to register window move callback: {e}", file=sys.stderr, flush=True)
     
     # 创建系统托盘图标
     tray = None
