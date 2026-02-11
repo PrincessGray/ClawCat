@@ -370,18 +370,17 @@ def start_services() -> Dict:
             window_script = PLUGIN_ROOT / "src" / "launch_window.py"
             
             if platform.system() == "Windows":
-                # On Windows, use DETACHED_PROCESS to allow GUI window to show
+                # On Windows, use CREATE_NEW_PROCESS_GROUP to allow GUI window to show
+                # Don't use DETACHED_PROCESS so output can be seen in console
                 window_process = subprocess.Popen(
                     [sys.executable, str(window_script)],
-                    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS,
+                    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
                     cwd=str(PLUGIN_ROOT)
                 )
             else:
-                # On Unix-like systems, use normal process
+                # On Unix-like systems, use normal process (output will go to console)
                 window_process = subprocess.Popen(
                     [sys.executable, str(window_script)],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
                     cwd=str(PLUGIN_ROOT)
                 )
             

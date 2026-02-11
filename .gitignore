@@ -50,3 +50,7 @@ ClawCatPlugin/public/ClawCat
 ClawCatPlugin/dist/
 ClawCatPlugin/build/
 *.exe
+
+# cc
+.claude-plugin/
+.claude
