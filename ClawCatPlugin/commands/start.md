@@ -1,46 +1,47 @@
 ---
-description: Start ClawCat services using launcher scripts
+description: One-click start ClawCat
 ---
 
-# Start ClawCat
+# 一键启动 ClawCat
 
-This command starts ClawCat services using platform-specific launcher scripts that automatically handle conda environment activation.
-
-**Prerequisites**:
-
-- **Conda** must be installed (recommended) or Python 3.8+ with dependencies installed
-- Frontend files are already provided in the repository (no build needed)
-
-**Note**: Services will run in the background. The ClawCat window will appear and stay open.
-
-## Launch Command
+## 🚀 快速启动
 
 ### Windows
+
+在 Claude Code 中执行：
 
 ```bash
 "${CLAUDE_PLUGIN_ROOT}/scripts/start_window.bat"
 ```
 
-### Unix/Linux/macOS
+或者直接双击运行：
+```
+ClawCatPlugin/scripts/start_window.bat
+```
+
+### macOS / Linux
+
+在 Claude Code 中执行：
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/start_window.sh"
 ```
 
-## What the Scripts Do
+## ✨ 自动完成
 
-The launcher scripts will:
+启动脚本会自动：
 
-1. Automatically detect and activate conda base environment (if available)
-2. Start the service manager which installs Python dependencies if needed
-3. Launch the ClawCat window with all dependencies
+1. ✅ 检测并激活 conda 环境（如果已安装）
+2. ✅ 安装 Python 依赖（如果需要）
+3. ✅ 启动 ClawCat 窗口和服务器
 
-## Alternative Commands
+## 📝 说明
 
-- **EXE Version**: `/clawcat:start_exe` - Uses bundled executable (no dependencies needed)
+- **首次启动**：会自动安装依赖，可能需要几分钟
+- **窗口位置**：ClawCat 窗口会出现在屏幕右下角
+- **日志文件**：`~/.claude/clawcat/logs/clawcat_*.log`
 
-## Dependency Installation
+## 🛑 停止服务
 
-Python dependencies are automatically installed by the service manager when you run the launcher script. The script activates conda environment first, then installs dependencies using pip in the conda environment.
-
-To stop ClawCat, use `/clawcat:stop` or press Ctrl+C in the terminal where it's running.
+- 在运行窗口按 `Ctrl+C`
+- 或使用命令：`/clawcat:stop`
