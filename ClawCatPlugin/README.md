@@ -1,8 +1,12 @@
-# ClawCat 🐱
+# ClawCat Plugin Documentation 🐱
 
 A Live2D desktop pet that integrates with Claude Code to provide visual feedback and interaction overlay.
 
+[中文文档](./README_CN.md) | [English Documentation](./README.md) | [Main README](../README.md)
+
 ![ClawCat Demo](public/cover.png)
+
+> **📦 Installation & Quick Start**: For installation instructions and quick start guide, please see the [Main README](../README.md).
 
 ## Features
 
@@ -16,62 +20,11 @@ A Live2D desktop pet that integrates with Claude Code to provide visual feedback
 - **Cross-Platform**: Works on Windows, macOS, and Linux
 - **Transparent Window**: Frameless, draggable overlay that stays on top
 
-## Installation
-
-### Via Claude Code Marketplace
-
-1. Add the ClawCat marketplace:
-   ```bash
-   /plugin marketplace add PrincessGray/ClawCat
-   ```
-
-2. Install the plugin:
-   ```bash
-   /plugin install clawcat
-   ```
-
-That's it! Dependencies will be automatically installed on first start.
-
-### Manual Installation
-
-If you prefer to install manually:
-
-1. Clone the repository
-2. Install Python dependencies:
-   ```bash
-   pip install -r ClawCatPlugin/requirements.txt
-   ```
-3. Install Node.js dependencies:
-   ```bash
-   cd ClawCatPlugin
-   npm install
-   ```
-
-## Quick Start
-
-Start ClawCat with a single command:
-
-```bash
-/clawcat:start
-```
-
-This will:
-- Check and install any missing dependencies
-- Start the Vite dev server (frontend)
-- Start the HTTP server (backend)
-- Launch the ClawCat window
-
-Stop ClawCat when you're done:
-
-```bash
-/clawcat:stop
-```
-
-## Usage
+## How It Works
 
 ### Hook Integration
 
-ClawCat automatically responds to Claude Code events:
+ClawCat automatically responds to Claude Code events through the hook system:
 
 1. **UserPromptSubmit**: Cat enters "working" state when you send a message
 2. **PreToolUse**: Cat shows which tool Claude is about to use

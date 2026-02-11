@@ -1,8 +1,12 @@
-# ClawCat 🐱
+# ClawCat 插件文档 🐱
 
 一个与 Claude Code 集成的 Live2D 桌面宠物，提供可视化反馈和交互覆盖层。
 
+[English Documentation](./README.md) | [中文文档](./README_CN.md) | [主 README](../README_CN.md)
+
 ![ClawCat 演示](public/cover.png)
+
+> **📦 安装与快速开始**：安装说明和快速开始指南，请查看[主 README](../README_CN.md)。
 
 ## 功能特性
 
@@ -16,62 +20,11 @@
 - **跨平台**：支持 Windows、macOS 和 Linux
 - **透明窗口**：无边框、可拖动的覆盖层，始终置顶
 
-## 安装
-
-### 通过 Claude Code 市场安装
-
-1. 添加 ClawCat 市场：
-   ```bash
-   /plugin marketplace add PrincessGray/ClawCat
-   ```
-
-2. 安装插件：
-   ```bash
-   /plugin install clawcat
-   ```
-
-就这么简单！首次启动时会自动安装依赖项。
-
-### 手动安装
-
-如果您更喜欢手动安装：
-
-1. 克隆仓库
-2. 安装 Python 依赖：
-   ```bash
-   pip install -r ClawCatPlugin/requirements.txt
-   ```
-3. 安装 Node.js 依赖：
-   ```bash
-   cd ClawCatPlugin
-   npm install
-   ```
-
-## 快速开始
-
-使用单个命令启动 ClawCat：
-
-```bash
-/clawcat:start
-```
-
-这将：
-- 检查并安装任何缺失的依赖项
-- 启动 Vite 开发服务器（前端）
-- 启动 HTTP 服务器（后端）
-- 启动 ClawCat 窗口
-
-完成后停止 ClawCat：
-
-```bash
-/clawcat:stop
-```
-
-## 使用方法
+## 工作原理
 
 ### 钩子集成
 
-ClawCat 自动响应 Claude Code 事件：
+ClawCat 通过钩子系统自动响应 Claude Code 事件：
 
 1. **UserPromptSubmit**：当您发送消息时，猫咪进入"工作中"状态
 2. **PreToolUse**：猫咪显示 Claude 即将使用的工具

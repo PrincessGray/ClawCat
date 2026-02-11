@@ -2,7 +2,7 @@
 
 A Live2D desktop pet that integrates with Claude Code to provide visual feedback and interaction overlay.
 
-[中文文档](./ClawCatPlugin/README_CN.md) | [English Documentation](./ClawCatPlugin/README.md)
+[中文文档](./README_CN.md) | [English Documentation](./README.md) | [Plugin Documentation](./ClawCatPlugin/README.md)
 
 ![ClawCat Demo](ClawCatPlugin/public/cover.png)
 
