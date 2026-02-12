@@ -14,7 +14,9 @@ Install the four required packages in conda base environment:
 conda run -n base pip install requests psutil PyQt5 PyQtWebEngine
 ```
 
-## Step 2: Start services
+**If this command fails** (e.g., conda not found or conda error), inform the user and fall back to system Python (see Fallback section below).
+
+## Step 3: Start services
 
 After dependencies are installed, **automatically start ClawCat services in the background** using conda base environment.
 
@@ -38,7 +40,37 @@ conda run -n base pythonw "${CLAUDE_PLUGIN_ROOT}\scripts\service_manager.py" sta
 conda run -n base python "${CLAUDE_PLUGIN_ROOT}/scripts/service_manager.py" start &
 ```
 
-That's it! Just two steps: install dependencies → start service.
+## Fallback: If conda is not available
+
+**If conda is not installed or the conda command fails**, inform the user and fall back to the system Python environment:
+
+**Step 1: Install dependencies with system Python:**
+
+```bash
+python -m pip install requests psutil PyQt5 PyQtWebEngine
+```
+
+Or if `python` is not available, try `python3`:
+
+```bash
+python3 -m pip install requests psutil PyQt5 PyQtWebEngine
+```
+
+**Step 2: Start services with system Python:**
+
+**Windows:**
+
+```bash
+pythonw "${CLAUDE_PLUGIN_ROOT}\scripts\service_manager.py" start
+```
+
+**macOS / Linux:**
+
+```bash
+python "${CLAUDE_PLUGIN_ROOT}/scripts/service_manager.py" start &
+```
+
+**Note**: When falling back to system Python, make sure to inform the user that conda was not found and that you're using the system Python environment instead.
 
 ## Notes
 
