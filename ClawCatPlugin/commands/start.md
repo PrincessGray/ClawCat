@@ -20,16 +20,22 @@ After dependencies are installed, **automatically start ClawCat services in the 
 
 **Windows:**
 
-Use PowerShell to run in background without showing a terminal window:
+**Option 1: Use PowerShell (recommended for background execution):**
 
 ```powershell
 Start-Process -WindowStyle Hidden -FilePath "conda" -ArgumentList "run", "-n", "base", "pythonw", "${CLAUDE_PLUGIN_ROOT}\scripts\service_manager.py", "start"
 ```
 
+**Option 2: Direct conda run (pythonw runs without a window):**
+
+```bash
+conda run -n base pythonw "${CLAUDE_PLUGIN_ROOT}\scripts\service_manager.py" start
+```
+
 **macOS / Linux:**
 
 ```bash
-nohup conda run -n base python "${CLAUDE_PLUGIN_ROOT}/scripts/service_manager.py" start > /dev/null 2>&1 &
+conda run -n base python "${CLAUDE_PLUGIN_ROOT}/scripts/service_manager.py" start &
 ```
 
 That's it! Just two steps: install dependencies → start service.
