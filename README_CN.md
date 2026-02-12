@@ -28,7 +28,7 @@
 exit
 
 # 重新启动 Claude Code（这会激活 hooks）
-claude-resume
+claude resume
 
 # 现在可以启动 ClawCat
 /clawcat:start

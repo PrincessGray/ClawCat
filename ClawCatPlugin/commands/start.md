@@ -4,63 +4,35 @@ description: Help users prepare ClawCat runtime environment and start services
 
 # Start ClawCat
 
-You are the startup assistant for the ClawCat plugin. Please follow these steps to help users prepare the environment and start the service automatically in the background.
+You are the startup assistant for the ClawCat plugin. Please follow these two simple steps to prepare the environment and start the service automatically in the background.
 
-## Step 1: Check conda environment
+## Step 1: Install dependencies
 
-Check if conda is installed:
-
-```bash
-conda --version
-```
-
-If conda is not found, inform the user that they need to install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) first.
-
-## Step 2: Install dependencies
-
-Install the required Python packages for ClawCat in the conda base environment:
+Install the four required packages in conda base environment:
 
 ```bash
 conda run -n base pip install requests psutil PyQt5 PyQtWebEngine
 ```
 
-After installation, verify that dependencies are ready:
+## Step 2: Start services
 
-```bash
-conda run -n base python -c "import PyQt5; import PyQt5.QtWebEngineWidgets; import requests; import psutil; print('All dependencies OK')"
-```
-
-## Step 3: Start services
-
-After dependencies are installed and verified, **automatically start ClawCat services in the background**.
-
-**Important**: Choose the appropriate method based on your conda environment setup:
-
-### Option A: Use launcher scripts (automatically activates conda base)
-
-The launcher scripts will automatically activate conda `base` environment. Use this if you installed dependencies in the base environment:
+After dependencies are installed, **automatically start ClawCat services in the background** using conda base environment.
 
 **Windows:**
 
-```bash
-start "" "${CLAUDE_PLUGIN_ROOT}\scripts\start_window.bat"
+Use PowerShell to run in background without showing a terminal window:
+
+```powershell
+Start-Process -WindowStyle Hidden -FilePath "conda" -ArgumentList "run", "-n", "base", "pythonw", "${CLAUDE_PLUGIN_ROOT}\scripts\service_manager.py", "start"
 ```
 
 **macOS / Linux:**
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/start_window.sh" &
+nohup conda run -n base python "${CLAUDE_PLUGIN_ROOT}/scripts/service_manager.py" start > /dev/null 2>&1 &
 ```
 
-### Option B: Use current conda environment (if you've activated a custom environment)
-
-If you've already activated a custom conda environment (e.g., `clawcat`) and installed dependencies there, use this method to avoid the script overriding your environment:
-
-```bash
-python "${CLAUDE_PLUGIN_ROOT}/scripts/service_manager.py" start
-```
-
-**Note**: The launcher scripts (`start_window.bat` / `start_window.sh`) will automatically activate conda `base` environment, which may override a currently active custom environment. If you want to use a custom conda environment, activate it first and then use Option B.
+That's it! Just two steps: install dependencies → start service.
 
 ## Notes
 
